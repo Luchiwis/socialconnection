@@ -3,20 +3,23 @@ const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-class OldEditor {
-  constructor(parent_selector, id = "editor") {
+class Editor {
+  constructor(parent_selector, nodeManager, id = "editor") {
     this.id = id;
     this.parent = document.querySelector(parent_selector);
-    this.editing = null;
+    this.nodeManager = nodeManager;
     this.#create();
-    this.i_name = document.querySelector(this.id + ">#name");
-    this.i_size = document.querySelector(this.id + ">#size");
-    this.i_color = document.querySelector(this.id + ">#color");
-    this.i_connect = document.querySelector(this.id + ">#connect");
-    this.i_remove = document.querySelector(this.id + ">#remove");
+    
+    this.i_name = document.querySelector("#name");
+    this.i_size = document.querySelector("#size");
+    this.i_color = document.querySelector("#color");
+    this.i_connect = document.querySelector("#connect");
+    this.i_remove = document.querySelector("#remove");
+
+    this.#addEvents();
   }
-  show(name, size, color, connections) {
-    this.#setValues(name, size, color, connections);
+  show(node) {
+    this.#setValues(node.text, node.radius, node.color, node.connections);
     this.bsCollapse.show();
   }
   hide() {
@@ -69,26 +72,40 @@ class OldEditor {
 
   #addEvents() {
     this.i_name.addEventListener("input", (e) => {
-      this.editing.text = e.target.value;
+        this.nodeManager.editing.text = e.target.value;
     });
     this.i_size.addEventListener("input", (e) => {
-      this.editing.radius = e.target.value;
+        this.nodeManager.editing.radius = e.target.value;
     });
     this.i_color.addEventListener("input", (e) => {
-      this.editing.color = e.target.value;
+        this.nodeManager.editing.color = e.target.value;
     });
     this.i_connect.addEventListener("input", (e) => {
-      console.log(e.target.value);
+      this.nodeManager.connect(this.nodeManager.editing, e.target.value);
     });
     this.i_remove.addEventListener("click", (e) => {
-      nodes.removeNode(this.editing);
+      nodes.removeNode(this.nodeManager.editing);
       this.hide();
     });
+    // show on double click if editing
+    this.nodeManager.canvas.addEventListener("dblclick", (e) => {
+      if (this.nodeManager.editing) {
+        this.show(this.nodeManager.editing);
+      }
+    });
+    // hide on click outside
+    this.nodeManager.canvas.addEventListener("click", (e) => {
+        if (!this.nodeManager.editing) {
+            this.hide();
+        }
+        }
+    );
   }
 }
 
-class Nodes {
+class NodeManager {
   constructor(id_canvas) {
+    this.canvas = document.querySelector(id_canvas);
     this.nodes = [];
     this.connections = [];
     this.grabbing = null;
@@ -151,7 +168,7 @@ class Nodes {
   }
 
   #createEvents() {
-    //
+    // Edit on double click
     canvas.addEventListener("click", (e) => {
       const x = e.offsetX;
       const y = e.offsetY;
@@ -280,7 +297,8 @@ class Connection {
 }
 
 // execution
-nodes = new Nodes(canvas);
+nodes = new NodeManager("#nodes");
+editor = new Editor("#edit-nodes", nodes);
 
 nombres = [
   "juan",
