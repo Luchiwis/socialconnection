@@ -119,7 +119,11 @@ class NodeManager {
   }
 
   removeNode(node) {
+    //remove node and all connections
     this.nodes = this.nodes.filter((n) => n !== node);
+    this.connections = this.connections.filter(
+        (c) => c.node1 !== node && c.node2 !== node
+    );
   }
 
   draw() {
