@@ -4,12 +4,11 @@ from django.core.exceptions import ValidationError
 # Create your models here.
 class Persona(models.Model):
     nombre = models.CharField(max_length=50)
-    apellido = models.CharField(max_length=50, null=True, blank=True)
-    edad = models.IntegerField(null=True, blank=True)
-    telefono = models.CharField(max_length=50, null=True, blank=True)
-    email = models.CharField(max_length=50, null=True, blank=True)
-    domicilio = models.CharField(max_length=50, null=True, blank=True)
-    fecha_nacimiento = models.DateField(null=True, blank=True)
+    x = models.IntegerField(null=True, blank=True)
+    y = models.IntegerField(null=True, blank=True)
+    size = models.IntegerField(null=True, blank=True)
+    color = models.CharField(max_length=50, null=True, blank=True)
+
     def __str__(self):
         return self.nombre
 
