@@ -9,11 +9,12 @@ class Editor {
     this.parent = document.querySelector(parent_selector);
     this.nodeManager = nodeManager;
     this.#create();
-    
+
     this.i_name = document.querySelector("#name");
     this.i_size = document.querySelector("#size");
     this.i_color = document.querySelector("#color");
-    this.i_connect = document.querySelector("#connect");
+    this.i_disconnect = document.querySelector("#disconnect");
+    this.connect = document.querySelector("#connect");
     this.i_remove = document.querySelector("#remove");
 
     this.#addEvents();
@@ -25,6 +26,17 @@ class Editor {
   hide() {
     this.bsCollapse.hide();
   }
+
+  getNode(name) {
+    for (const node of this.nodeManager.nodes) {
+      if (node.text === name) {
+        return node;
+      }
+    }
+    return null;
+  }
+
+
   #create() {
     const form_input = document.createElement("div");
     const component = `<div id="${this.id}" class="input-group flex-nowrap collapse">
@@ -34,19 +46,24 @@ class Editor {
         <!-- size (range) -->
 
         <span class="input-group-text" id="addon-wrapping">Size</span>
-        <input type="range" class="form-control" placeholder="Size" aria-label="Size" aria-describedby="addon-wrapping" id="size" min="1" max="100">
+        <input type="range" class="form-control" placeholder="Size" aria-label="Size" aria-describedby="addon-wrapping" id="size" min="20" max="200">
         <!-- color (color picker) -->
         <span class="input-group-text" id="addon-wrapping">Color</span>
-        <input type="color" class="form-control" placeholder="Color" aria-label="Color" aria-describedby="addon-wrapping" id="color">
+        <input type="color" class="form-control m-auto" placeholder="Color" aria-label="Color" aria-describedby="addon-wrapping" id="color">
         <!-- connect (dropdown with checkboxes) -->
-        <span class="input-group-text" id="addon-wrapping">Connect</span>
-        <select class="form-select" aria-label="Connect" id="connect">
+        <span class="input-group-text" id="addon-wrapping">Disconnect</span>
+        <select class="form-select" aria-label="Connect" id="disconnect">
             <option selected>Choose...</option>
             <option value="1">One</option>
             <option value="2">Two</option>
         </select>
+        <!-- connect (dropdown with checkboxes) -->
+            <span class="input-group-text" id="addon-wrapping">Connect</span>
+            <select class="form-select" aria-label="Connect" id="connect">
+                <option selected>Choose...</option>
+            </select>
         <!-- remove -->
-        <button type="button" class="btn btn-danger" id="remove">Remove</button>
+        <button type="button" class="btn btn-danger" id="remove">Remove Node</button>
     </div>`;
 
     form_input.innerHTML = component;
@@ -59,30 +76,63 @@ class Editor {
 
   #setValues(nombre, size, color, connections) {
     this.i_name.value = nombre;
+
     this.i_size.value = size;
+
     this.i_color.value = color;
-    this.i_connect.innerHTML = "";
+
+    this.i_disconnect.innerHTML = "<option selected>Choose...</option>";
     connections.forEach((connection) => {
       const option = document.createElement("option");
-      option.value = connection;
-      option.innerHTML = connection;
-      this.i_connect.appendChild(option);
+      option.value =
+        connection.node1 === this.nodeManager.editing
+          ? connection.node2.text
+          : connection.node1.text;
+      option.innerHTML =
+        connection.node1 === this.nodeManager.editing
+          ? connection.node2.text
+          : connection.node1.text;
+      this.i_disconnect.appendChild(option);
+    });
+
+    this.connect.innerHTML = "<option selected>Choose...</option>";
+    this.nodeManager.nodes.forEach((node) => {
+      if (node !== this.nodeManager.editing) {
+        const option = document.createElement("option");
+        option.value = node.text;
+        option.innerHTML = node.text;
+        this.connect.appendChild(option);
+      }
     });
   }
 
   #addEvents() {
+    // change name
     this.i_name.addEventListener("input", (e) => {
-        this.nodeManager.editing.text = e.target.value;
+      this.nodeManager.editing.text = e.target.value;
     });
+    // change size
     this.i_size.addEventListener("input", (e) => {
-        this.nodeManager.editing.radius = e.target.value;
+      this.nodeManager.editing.radius = e.target.value;
     });
+    // change color
     this.i_color.addEventListener("input", (e) => {
-        this.nodeManager.editing.color = e.target.value;
+      this.nodeManager.editing.color = e.target.value;
     });
-    this.i_connect.addEventListener("input", (e) => {
-      this.nodeManager.connect(this.nodeManager.editing, e.target.value);
+    // disconnect
+    this.i_disconnect.addEventListener("input", (e) => {
+      this.nodeManager.disconnect(
+        this.nodeManager.editing,
+        this.getNode(e.target.value)
+      );
+      this.show(this.nodeManager.editing);
     });
+    // connect
+    this.connect.addEventListener("input", (e) => {
+      this.nodeManager.connect(this.nodeManager.editing, this.getNode(e.target.value));
+      this.show(this.nodeManager.editing);
+    });
+    //remove
     this.i_remove.addEventListener("click", (e) => {
       nodes.removeNode(this.nodeManager.editing);
       this.hide();
@@ -95,11 +145,10 @@ class Editor {
     });
     // hide on click outside
     this.nodeManager.canvas.addEventListener("click", (e) => {
-        if (!this.nodeManager.editing) {
-            this.hide();
-        }
-        }
-    );
+      if (!this.nodeManager.editing) {
+        this.hide();
+      }
+    });
   }
 }
 
@@ -122,7 +171,7 @@ class NodeManager {
     //remove node and all connections
     this.nodes = this.nodes.filter((n) => n !== node);
     this.connections = this.connections.filter(
-        (c) => c.node1 !== node && c.node2 !== node
+      (c) => c.node1 !== node && c.node2 !== node
     );
   }
 
@@ -262,7 +311,8 @@ class Node {
     ctx.fillStyle = this.color;
     ctx.fill();
 
-    ctx.font = "20px Arial";
+    //proporcionar el tipo de letra y el tamaño
+    ctx.font = this.radius / 2 + "px Arial";
     ctx.fillStyle = "white";
     ctx.textAlign = "center";
     ctx.fillText(this.text, this.x, this.y + 5);
