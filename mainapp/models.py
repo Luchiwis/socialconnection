@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 
 # Create your models here.
 class Persona(models.Model):
@@ -18,3 +19,14 @@ class Conexion(models.Model):
     peso = models.IntegerField(null=True, blank=True)
     def __str__(self):
         return self.persona1.nombre + " - " + self.persona2.nombre
+    
+    def save(self, *args, **kwargs):
+        # Check if a connection between the same persons already exists
+        if self.persona1 == self.persona2:
+            raise ValidationError("You cannot create a connection between the same person.")
+        
+        # Check if a connection with the same persons already exists (bidirectional check)
+        if Conexion.objects.filter(persona1=self.persona2, persona2=self.persona1).exists():
+            raise ValidationError("A connection between these persons already exists.")
+
+        super().save(*args, **kwargs)

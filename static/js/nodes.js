@@ -1,3 +1,4 @@
+console.log("nodes.js loaded");
 const canvas = document.querySelector("#nodes");
 const ctx = canvas.getContext("2d");
 canvas.width = window.innerWidth;
@@ -35,7 +36,6 @@ class Editor {
     }
     return null;
   }
-
 
   #create() {
     const form_input = document.createElement("div");
@@ -129,7 +129,10 @@ class Editor {
     });
     // connect
     this.connect.addEventListener("input", (e) => {
-      this.nodeManager.connect(this.nodeManager.editing, this.getNode(e.target.value));
+      this.nodeManager.connect(
+        this.nodeManager.editing,
+        this.getNode(e.target.value)
+      );
       this.show(this.nodeManager.editing);
     });
     //remove
@@ -159,6 +162,7 @@ class NodeManager {
     this.connections = [];
     this.grabbing = null;
     this.editing = null;
+    this.onChangeFunctions = [];
     this.#createEvents();
     this.#update();
   }
@@ -213,6 +217,30 @@ class NodeManager {
     return null;
   }
 
+  getState() {
+    const nodes = [];
+    this.nodes.forEach((node) => {
+      nodes.push(node.getData());
+    });
+    const connections = [];
+    this.connections.forEach((connection) => {
+      connections.push(connection.getData());
+    });
+    return {
+      nodes: nodes,
+      connections: connections,
+    };
+  }
+
+  bindChanges(func) {
+    this.onChangeFunctions.push(func);
+  }
+
+  #changed() {
+    // call all binded functions
+    this.onChangeFunctions.forEach((func) => func());
+  }
+
   #update() {
     // remove everything and redraw
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -255,6 +283,7 @@ class NodeManager {
       }
     });
 
+    // Grab node
     canvas.addEventListener("mousedown", (e) => {
       const x = e.offsetX;
       const y = e.offsetY;
@@ -266,6 +295,7 @@ class NodeManager {
       });
     });
 
+    // Release node
     canvas.addEventListener("mouseup", (e) => {
       const x = e.offsetX;
       const y = e.offsetY;
@@ -275,6 +305,7 @@ class NodeManager {
           this.grabbing = null;
         }
       });
+      this.#changed();
     });
 
     // Edit on double click
@@ -296,13 +327,24 @@ class NodeManager {
 }
 
 class Node {
-  constructor(x, y, radius = 50, text = "", color = "lightgray") {
+  constructor(id, x, y, radius = 50, text = "", color = "lightgray") {
+    this.id = id;
     this.x = x;
     this.y = y;
     this.radius = radius;
     this.color = color;
     this.text = text;
     this.connections = [];
+  }
+
+  getData() {
+    return {
+      x: this.x,
+      y: this.y,
+      radius: this.radius,
+      color: this.color,
+      text: this.text,
+    };
   }
 
   draw() {
@@ -348,15 +390,39 @@ class Connection {
     ctx.lineTo(this.node2.x, this.node2.y);
     ctx.stroke();
   }
+
+  getData() {
+    return {
+      node1: this.node1.id,
+      node2: this.node2.id,
+      width: this.width,
+    };
+  }
+}
+
+// functions
+function ajaxRequest(url, method, data) {
+  var request = new XMLHttpRequest();
+  request.onreadystatechange = function () {
+    if (this.readyState == 4 && this.status == 200) {
+      return this.responseText;
+    }
+  };
+  request.open(method, url, true);
+  request.setRequestHeader("Content-Type", "application/json");
+  request.setRequestHeader("X-CSRFToken", csrfToken);
+  request.send(JSON.stringify(data));
 }
 
 // execution
 nodes = new NodeManager("#nodes");
 editor = new Editor("#edit-nodes", nodes);
 
-persona1 = new Node(40, 40, 50, "lucio", "blue");
-persona2 = new Node(200, 200, 50, "jorge", "red");
+persona1 = new Node(0, 40, 40, 50, "lucio", "blue");
+persona2 = new Node(1, 200, 200, 50, "jorge", "red");
 nodes.addNode(persona1);
 nodes.addNode(persona2);
 
 nodes.connect(persona2, persona1);
+
+nodes.bindChanges(() => ajaxRequest("", "POST", nodes.getState()))
