@@ -10,7 +10,8 @@ def index(request):
     if request.method == "POST":
         values = request.body.decode('utf-8')
         values = loads(values)
-        # pprint(values)
+        saveState(values)
+        pprint(values)
         # return json
         # return JsonResponse({"status": saveState(values)})
 

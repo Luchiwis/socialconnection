@@ -236,15 +236,26 @@ class NodeManager {
     this.nodes = [];
     this.connections = [];
     state.nodes.forEach((node) => {
-      this.nodes.push(new Node(node.id, node.x, node.y, node.radius, node.text, node.color));
+      this.nodes.push(
+        new Node(node.id, node.x, node.y, node.radius, node.text, node.color)
+      );
     });
     state.connections.forEach((connection) => {
       this.connect(
-        this.nodes[connection.node1],
-        this.nodes[connection.node2],
+        this.getNodeFromId(connection.node1),
+        this.getNodeFromId(connection.node2),
         connection.width
       );
     });
+  }
+
+  getNodeFromId(id) {
+    for (const node of this.nodes) {
+      if (node.id === id) {
+        return node;
+      }
+    }
+    return null;
   }
 
   bindChanges(func) {
@@ -354,6 +365,7 @@ class Node {
 
   getData() {
     return {
+      id: this.id,
       x: this.x,
       y: this.y,
       radius: this.radius,
@@ -429,34 +441,34 @@ function ajaxRequest(url, method, data) {
   request.send(JSON.stringify(data));
 }
 
-function save(){
-  response = ajaxRequest("", "POST", nodes.getState())
+function save() {
+  response = ajaxRequest("", "POST", nodes.getState());
   // console.log(response)
 }
 
-function autoSave(time = 10000){
-  setInterval(save, time)
+function autoSave(time = 10000) {
+  setInterval(save, time);
 }
-
 
 // events
 window.addEventListener("load", () => {
   console.log("loaded");
-  console.log("recieved last state : \n" + state)
-  state = JSON.parse(state)
-  nodes.loadFromState(state)
+  console.log("recieved last state : \n" + state);
+  state = JSON.parse(state);
+  nodes.loadFromState(state);
 });
 
 // execution
-// nodes = new NodeManager("#nodes");
-// editor = new Editor("#edit-nodes", nodes);
+nodes = new NodeManager("#nodes");
+editor = new Editor("#edit-nodes", nodes);
 
+nodes.bindChanges(save); // save state
+autoSave(5000);
+
+// create nodes
 // persona1 = new Node(0, 40, 40, 50, "lucio", "blue");
 // persona2 = new Node(1, 200, 200, 50, "jorge", "red");
 // nodes.addNode(persona1);
 // nodes.addNode(persona2);
 
 // nodes.connect(persona2, persona1);
-
-// nodes.bindChanges(save) // save state
-// autoSave(5000)
